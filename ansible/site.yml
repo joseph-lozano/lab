@@ -1,0 +1,14 @@
+---
+- name: Provision disposable lab dev box
+  hosts: localhost
+  become: true
+  gather_facts: true
+  roles:
+    - role: base
+    - role: onepassword
+    - role: tailscale
+    - role: security
+    - role: user
+    - role: chezmoi
+    - role: mise
+    - role: workspace

@@ -1,0 +1,29 @@
+---
+- name: Set hostname before Tailscale joins
+  ansible.builtin.hostname:
+    name: "{{ lab_hostname }}"
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ lab_timezone }}"
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name:
+      - acl
+      - bash
+      - ca-certificates
+      - curl
+      - debsig-verify
+      - fish
+      - git
+      - gnupg
+      - jq
+      - openssh-server
+      - python3
+      - python3-apt
+      - sudo
+      - ufw
+      - unzip
+    state: present
+    update_cache: true

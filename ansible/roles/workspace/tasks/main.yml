@@ -1,0 +1,48 @@
+---
+- name: Ensure workspace root exists
+  ansible.builtin.file:
+    path: "{{ workspace_root }}"
+    state: directory
+    owner: "{{ lab_user }}"
+    group: "{{ lab_user }}"
+    mode: '0755'
+
+- name: Authenticate gh with PAT from 1Password
+  ansible.builtin.shell: |
+    set -euo pipefail
+    . "{{ lab_op_user_token_file }}"
+    op read "op://{{ lab_op_vault }}/{{ github_pat_item }}/{{ github_pat_field }}" | /home/{{ lab_user }}/.local/bin/mise exec -- gh auth login --hostname "{{ github_hostname }}" --with-token
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ lab_user }}"
+  no_log: true
+
+- name: Show gh auth status and credential storage
+  ansible.builtin.command: /home/{{ lab_user }}/.local/bin/mise exec -- gh auth status --hostname "{{ github_hostname }}"
+  become: true
+  become_user: "{{ lab_user }}"
+  changed_when: false
+
+- name: Check gh hosts.yml
+  ansible.builtin.stat:
+    path: "/home/{{ lab_user }}/.config/gh/hosts.yml"
+  register: gh_hosts
+
+- name: Ensure gh hosts.yml is private if plaintext fallback exists
+  ansible.builtin.file:
+    path: "/home/{{ lab_user }}/.config/gh/hosts.yml"
+    owner: "{{ lab_user }}"
+    group: "{{ lab_user }}"
+    mode: '0600'
+  when: gh_hosts.stat.exists
+
+- name: Clone configured workspace repositories after chezmoi and mise
+  ansible.builtin.git:
+    repo: "{{ item.url }}"
+    dest: "{{ workspace_root }}/{{ item.name }}"
+    version: "{{ item.version | default('HEAD') }}"
+    update: true
+  loop: "{{ workspace_repositories }}"
+  become: true
+  become_user: "{{ lab_user }}"

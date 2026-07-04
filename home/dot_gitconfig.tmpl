@@ -1,0 +1,6 @@
+[user]
+    name = {{ env "LAB_GIT_USER_NAME" | default "Lab User" }}
+    email = {{ env "LAB_GIT_USER_EMAIL" | default "lab@example.invalid" }}
+
+[credential "https://github.com"]
+    helper = "!f() { test \"$1\" = get || exit 0; token_file=\"${LAB_OP_USER_TOKEN_FILE:-$HOME/.config/lab/op-token}\"; . \"$token_file\"; printf 'username=x-access-token\\n'; printf 'password='; op read \"op://${LAB_OP_VAULT:-lab}/${LAB_GITHUB_PAT_ITEM:-github-pat}/${LAB_GITHUB_PAT_FIELD:-token}\"; printf '\\n'; }; f"

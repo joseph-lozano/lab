@@ -1,0 +1,54 @@
+---
+- name: Install Tailscale apt key and repository
+  ansible.builtin.shell: |
+    set -euo pipefail
+    curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.noarmor.gpg \
+      -o /usr/share/keyrings/tailscale-archive-keyring.gpg
+    curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.tailscale-keyring.list \
+      -o /etc/apt/sources.list.d/tailscale.list
+  args:
+    executable: /bin/bash
+    creates: /etc/apt/sources.list.d/tailscale.list
+
+- name: Install Tailscale
+  ansible.builtin.apt:
+    name: tailscale
+    state: present
+    update_cache: true
+
+- name: Enable tailscaled
+  ansible.builtin.systemd:
+    name: tailscaled.service
+    enabled: true
+    state: started
+
+- name: Install Tailscale reconnect script
+  ansible.builtin.template:
+    src: lab-tailscale-reconnect.sh.j2
+    dest: /usr/local/sbin/lab-tailscale-reconnect
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Install Tailscale reconnect systemd unit
+  ansible.builtin.template:
+    src: lab-tailscale-reconnect.service.j2
+    dest: /etc/systemd/system/lab-tailscale-reconnect.service
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Enable and run Tailscale reconnect unit
+  ansible.builtin.systemd:
+    name: lab-tailscale-reconnect.service
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Confirm Tailscale connectivity before lockdown
+  ansible.builtin.command: tailscale status --json
+  register: tailscale_status
+  changed_when: false
+  retries: 12
+  delay: 5
+  until: tailscale_status.rc == 0 and 'Self' in tailscale_status.stdout

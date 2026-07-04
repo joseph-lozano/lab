@@ -1,0 +1,6 @@
+[tools]
+gh = "2.74.2"
+"github:can1357/oh-my-pi" = "latest"
+
+[settings]
+experimental = true

@@ -1,0 +1,37 @@
+---
+- name: Create lab user with fish login shell
+  ansible.builtin.user:
+    name: "{{ lab_user }}"
+    comment: "{{ lab_user_full_name }}"
+    shell: /usr/bin/fish
+    groups: sudo
+    append: true
+    create_home: true
+
+- name: Allow passwordless sudo for lab user
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/90-{{ lab_user }}"
+    owner: root
+    group: root
+    mode: '0440'
+    content: "{{ lab_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    validate: 'visudo -cf %s'
+
+- name: Ensure user lab config directory exists
+  ansible.builtin.file:
+    path: "/home/{{ lab_user }}/.config/lab"
+    state: directory
+    owner: "{{ lab_user }}"
+    group: "{{ lab_user }}"
+    mode: '0700'
+
+- name: Copy OP token for user-scoped tools
+  ansible.builtin.copy:
+    src: "{{ lab_op_root_token_file }}"
+    dest: "{{ lab_op_user_token_file }}"
+    remote_src: true
+    owner: "{{ lab_user }}"
+    group: "{{ lab_user }}"
+    mode: '0600'
+    force: false
+  no_log: true

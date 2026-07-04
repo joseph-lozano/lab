@@ -1,0 +1,17 @@
+[tools]
+hk = "1.7.0"
+gitleaks = "8.28.0"
+shellcheck = "0.10.0"
+usage = "latest"
+
+# Do not add pkl here unless intentionally opting into HK_PKL_BACKEND=pkl.
+# hk uses its built-in Rust pklr backend by default.
+#
+# Box/user tools live in home/dot_config/mise/config.toml and are applied by chezmoi
+# before the Ansible mise role runs. Keep this repo-root file focused on local
+# repo/coding hook tooling so `mise install && hk install` remains a small,
+# public-safe local setup path.
+
+[settings]
+experimental = true
+

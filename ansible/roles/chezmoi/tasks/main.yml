@@ -1,0 +1,22 @@
+---
+- name: Install chezmoi
+  ansible.builtin.shell: |
+    set -euo pipefail
+    sh -c "$(curl -fsLS get.chezmoi.io)" -- -b /usr/local/bin
+  args:
+    executable: /bin/bash
+    creates: /usr/local/bin/chezmoi
+
+- name: Apply chezmoi source before workspace clones
+  ansible.builtin.command:
+    cmd: "chezmoi apply --source {{ lab_workdir }}/home --destination /home/{{ lab_user }}"
+  become: true
+  become_user: "{{ lab_user }}"
+  environment:
+    LAB_OP_VAULT: "{{ lab_op_vault }}"
+    LAB_GITHUB_PAT_ITEM: "{{ github_pat_item }}"
+    LAB_GITHUB_PAT_FIELD: "{{ github_pat_field }}"
+    LAB_OP_USER_TOKEN_FILE: "{{ lab_op_user_token_file }}"
+    LAB_OMP_OPENAI_ITEM: "{{ omp_openai_item }}"
+    LAB_OMP_OPENAI_FIELD: "{{ omp_openai_field }}"
+  changed_when: true

@@ -1,0 +1,22 @@
+amends "package://github.com/jdx/hk/releases/download/v1.7.0/hk@1.7.0#/Config.pkl"
+
+// This file is pinned to the hk version in mise.toml.
+// It relies on hk's built-in pklr backend. Do not set HK_PKL_BACKEND=pkl by default.
+
+hooks {
+  ["pre-commit"] {
+    fix = true
+    stash = "git"
+    steps {
+      ["gitleaks"] {
+        // Requires the gitleaks builtin in pinned hk. If hk 1.7.0 does not expose
+        // this builtin, update the pinned hk version or adjust the hook schema.
+        uses = "gitleaks"
+      }
+      ["shellcheck"] {
+        glob = "**/*.sh"
+        run = "shellcheck ${files}"
+      }
+    }
+  }
+}

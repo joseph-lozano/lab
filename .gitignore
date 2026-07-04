@@ -1,0 +1,10 @@
+.DS_Store
+*.retry
+*.log
+.cache/
+.tmp/
+.env
+.env.*
+__omp_shell(".env.example")
+secrets/
+.op-token

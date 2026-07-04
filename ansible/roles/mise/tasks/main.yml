@@ -1,0 +1,69 @@
+---
+- name: Install pinned mise for user
+  ansible.builtin.shell: |
+    set -euo pipefail
+    curl -fsSL {{ mise_install_url | quote }} | MISE_INSTALL_PATH=/home/{{ lab_user }}/.local/bin/mise sh
+    /home/{{ lab_user }}/.local/bin/mise --version | grep -F {{ mise_version | quote }} >/dev/null || /home/{{ lab_user }}/.local/bin/mise self-update {{ mise_version | quote }}
+  args:
+    executable: /bin/bash
+    creates: "/home/{{ lab_user }}/.local/bin/mise"
+  become: true
+  become_user: "{{ lab_user }}"
+
+- name: Verify pinned mise version
+  ansible.builtin.command: "/home/{{ lab_user }}/.local/bin/mise --version"
+  register: mise_version_output
+  changed_when: false
+  failed_when: "mise_version not in mise_version_output.stdout"
+  become: true
+  become_user: "{{ lab_user }}"
+
+- name: Verify box mise config exists from chezmoi
+  ansible.builtin.stat:
+    path: "/home/{{ lab_user }}/.config/mise/config.toml"
+  register: box_mise_config
+
+- name: Fail when box mise config is missing
+  ansible.builtin.fail:
+    msg: "Missing /home/{{ lab_user }}/.config/mise/config.toml; chezmoi must run before the mise role."
+  when: not box_mise_config.stat.exists
+
+- name: Trust box mise config
+  ansible.builtin.command: "/home/{{ lab_user }}/.local/bin/mise trust /home/{{ lab_user }}/.config/mise/config.toml"
+  become: true
+  become_user: "{{ lab_user }}"
+  changed_when: false
+
+- name: Install box user tools from home mise config
+  ansible.builtin.command: "/home/{{ lab_user }}/.local/bin/mise install"
+  args:
+    chdir: "/home/{{ lab_user }}"
+  become: true
+  become_user: "{{ lab_user }}"
+  environment:
+    MISE_YES: '1'
+
+- name: Document OS package installation split
+  ansible.builtin.debug:
+    msg: "OS packages are installed by the base role via apt. TODO: re-enable `mise system install --yes` only after the pinned mise version supports the selected [system.packages] schema without breaking repo-local `mise install`."
+
+- name: Validate OMP pinned provider assumptions
+  ansible.builtin.shell: |
+    set -euo pipefail
+    if ! /home/{{ lab_user }}/.local/bin/mise exec -- omp --version >/tmp/lab-omp-version.txt; then
+      echo "TODO: OMP assertion failed: omp is not installed by selected mise backend." >&2
+      cat /tmp/lab-omp-version.txt >&2 || true
+      exit 1
+    fi
+    /home/{{ lab_user }}/.local/bin/mise exec -- omp --help >/tmp/lab-omp-help.txt
+    grep -E 'models\.yml|model' /tmp/lab-omp-help.txt >/dev/null || {
+      echo "TODO: OMP assertion failed: models.yml/provider help not found in installed OMP output:" >&2
+      cat /tmp/lab-omp-help.txt >&2
+      exit 1
+    }
+  args:
+    executable: /bin/bash
+  changed_when: false
+  when: omp_validation_enabled | bool
+  become: true
+  become_user: "{{ lab_user }}"

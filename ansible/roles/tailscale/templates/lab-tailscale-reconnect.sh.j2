@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TOKEN_FILE={{ lab_op_root_token_file | quote }}
+VAULT={{ lab_op_vault | quote }}
+ITEM={{ tailscale_auth_key_item | quote }}
+FIELD={{ tailscale_auth_key_field | quote }}
+HOSTNAME={{ tailscale_hostname | quote }}
+TAGS={{ tailscale_advertise_tags | join(',') | quote }}
+
+FLAGS=(
+  --auth-key "$( . "${TOKEN_FILE}"; op read "op://${VAULT}/${ITEM}/${FIELD}" )"
+  --hostname "${HOSTNAME}"
+  --advertise-tags "${TAGS}"
+  --accept-dns={{ tailscale_accept_dns | ternary('true', 'false') }}
+  --ssh={{ tailscale_ssh | ternary('true', 'false') }}
+)
+{% if tailscale_ephemeral %}
+FLAGS+=(--ephemeral)
+{% endif %}
+
+needs_up=1
+if status_json="$(tailscale status --json 2>/dev/null)"; then
+  if printf '%s' "${status_json}" | jq -e --arg hostname "${HOSTNAME}" '.Self.Online == true and (.Self.HostName == $hostname or .Self.DNSName | startswith($hostname + "."))' >/dev/null; then
+    needs_up=0
+  fi
+fi
+
+if [ "${needs_up}" -eq 0 ]; then
+  exit 0
+fi
+
+# Pass the complete intended flag set on every run; Tailscale up flags are not persisted.
+tailscale up "${FLAGS[@]}"

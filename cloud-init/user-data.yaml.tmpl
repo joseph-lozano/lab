@@ -1,0 +1,24 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+write_files:
+  - path: /root/lab-bootstrap-op-token
+    owner: root:root
+    permissions: '0600'
+    content: |
+      export OP_SERVICE_ACCOUNT_TOKEN={{ op_service_account_token }}
+  - path: /root/lab-bootstrap.sh
+    owner: root:root
+    permissions: '0700'
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      export LAB_REPO_URL={{ lab_repo_url }}
+      export LAB_REPO_REF={{ lab_repo_ref | default('main') }}
+      . /root/lab-bootstrap-op-token
+      curl -fsSL "${LAB_REPO_URL%/}/raw/${LAB_REPO_REF}/scripts/bootstrap.sh" -o /root/bootstrap.sh
+      bash /root/bootstrap.sh
+
+runcmd:
+  - [bash, /root/lab-bootstrap.sh]

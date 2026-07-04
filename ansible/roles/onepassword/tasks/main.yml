@@ -1,0 +1,79 @@
+---
+- name: Install 1Password apt signing key
+  ansible.builtin.shell: |
+    set -euo pipefail
+    install -d -m 0755 /etc/apt/keyrings
+    curl -fsSL https://downloads.1password.com/linux/keys/1password.asc \
+      | gpg --dearmor -o /etc/apt/keyrings/1password-archive-keyring.gpg
+    chmod 0644 /etc/apt/keyrings/1password-archive-keyring.gpg
+  args:
+    executable: /bin/bash
+    creates: /etc/apt/keyrings/1password-archive-keyring.gpg
+
+- name: Configure 1Password apt repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/1password.list
+    owner: root
+    group: root
+    mode: '0644'
+    content: "deb [arch={{ ansible_architecture | regex_replace('x86_64', 'amd64') | regex_replace('aarch64', 'arm64') }} signed-by=/etc/apt/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/{{ ansible_architecture | regex_replace('x86_64', 'amd64') | regex_replace('aarch64', 'arm64') }} stable main\n"
+
+- name: Configure 1Password debsig policy and keyring
+  ansible.builtin.shell: |
+    set -euo pipefail
+    install -d -m 0755 /etc/debsig/policies/AC2D62742012EA22 /usr/share/debsig/keyrings/AC2D62742012EA22
+    curl -fsSL https://downloads.1password.com/linux/debian/debsig/1password.pol \
+      -o /etc/debsig/policies/AC2D62742012EA22/1password.pol
+    curl -fsSL https://downloads.1password.com/linux/keys/1password.asc \
+      | gpg --dearmor -o /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+    chmod 0644 /etc/debsig/policies/AC2D62742012EA22/1password.pol /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+  args:
+    executable: /bin/bash
+    creates: /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+
+- name: Install official 1Password CLI package
+  ansible.builtin.apt:
+    name: 1password-cli
+    state: present
+    update_cache: true
+
+- name: Ensure root token file exists
+  ansible.builtin.stat:
+    path: "{{ lab_op_root_token_file }}"
+  register: root_op_token
+
+- name: Fail when root OP token is missing
+  ansible.builtin.fail:
+    msg: "Missing {{ lab_op_root_token_file }}; bootstrap must persist OP_SERVICE_ACCOUNT_TOKEN before ansible-pull."
+  when: not root_op_token.stat.exists
+
+- name: Verify 1Password service account identity
+  ansible.builtin.shell: |
+    set -euo pipefail
+    . "{{ lab_op_root_token_file }}"
+    op user get --me
+  args:
+    executable: /bin/bash
+  changed_when: false
+  no_log: true
+
+- name: Verify 1Password lab vault read access
+  ansible.builtin.shell: |
+    set -euo pipefail
+    . "{{ lab_op_root_token_file }}"
+    op item list --vault "{{ lab_op_vault }}"
+  args:
+    executable: /bin/bash
+  changed_when: false
+  no_log: true
+
+- name: Verify required 1Password items exist
+  ansible.builtin.shell: |
+    set -euo pipefail
+    . "{{ lab_op_root_token_file }}"
+    op read "op://{{ lab_op_vault }}/{{ item.item }}/{{ item.field }}" >/dev/null
+  args:
+    executable: /bin/bash
+  loop: "{{ onepassword_required_items }}"
+  changed_when: false
+  no_log: true

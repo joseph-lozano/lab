@@ -1,0 +1,46 @@
+---
+- name: Allow outbound traffic by default
+  community.general.ufw:
+    direction: outgoing
+    policy: allow
+
+- name: Deny inbound traffic by default
+  community.general.ufw:
+    direction: incoming
+    policy: deny
+
+- name: Allow Tailscale direct UDP when enabled
+  community.general.ufw:
+    rule: allow
+    port: '41641'
+    proto: udp
+    comment: Tailscale direct UDP default port; change this if tailscaled --port changes.
+  when: allow_direct_udp | bool
+
+- name: Enable firewall after Tailscale confirmation
+  community.general.ufw:
+    state: enabled
+
+- name: Disable and mask ssh.service after Tailscale confirmation
+  ansible.builtin.systemd:
+    name: ssh.service
+    state: stopped
+    enabled: false
+    masked: true
+  # Tailscale SSH does not require the normal OpenSSH daemon for Tailscale-IP SSH.
+  # Public/plain SSH is intentionally disabled only after Tailscale connectivity is confirmed.
+
+- name: Check whether sshd.service exists
+  ansible.builtin.command: systemctl list-unit-files sshd.service
+  register: sshd_unit
+  changed_when: false
+  failed_when: false
+
+- name: Disable and mask sshd.service if present
+  ansible.builtin.systemd:
+    name: sshd.service
+    state: stopped
+    enabled: false
+    masked: true
+  when: sshd_unit.rc == 0 and 'sshd.service' in sshd_unit.stdout
+  # Public SSH lockdown must happen only after Tailscale connectivity is confirmed.

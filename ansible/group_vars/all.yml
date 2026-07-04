@@ -1,0 +1,47 @@
+---
+lab_user: lab
+lab_user_full_name: Lab User
+lab_hostname: lab
+lab_timezone: Etc/UTC
+lab_repo_url: https://github.com/example/lab.git
+lab_repo_ref: main
+lab_workdir: /opt/lab
+
+lab_op_vault: lab
+lab_op_root_token_file: /root/.config/lab/op-token
+lab_op_user_token_file: "/home/{{ lab_user }}/.config/lab/op-token"
+
+onepassword_required_items:
+  - item: tailscale-auth-key
+    field: credential
+  - item: github-pat
+    field: token
+
+tailscale_auth_key_item: tailscale-auth-key
+tailscale_auth_key_field: credential
+tailscale_advertise_tags:
+  - tag:lab
+tailscale_hostname: "{{ lab_hostname }}"
+tailscale_accept_dns: true
+tailscale_ssh: true
+tailscale_ephemeral: true
+allow_direct_udp: false
+
+github_pat_item: github-pat
+github_pat_field: token
+github_hostname: github.com
+
+mise_version: 2025.7.12
+mise_install_url: "https://mise.run"
+
+omp_validation_enabled: true
+omp_binary_name: omp
+omp_openai_item: codex-subscription
+omp_openai_field: subscription
+
+workspace_root: "/home/{{ lab_user }}/work"
+workspace_repositories: []
+# Example, public if committed:
+# workspace_repositories:
+#   - name: example
+#     url: https://github.com/example/example.git

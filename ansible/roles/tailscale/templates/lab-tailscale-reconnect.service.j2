@@ -1,0 +1,11 @@
+[Unit]
+Description=Reconnect disposable lab node to Tailscale
+Wants=network-online.target
+After=network-online.target tailscaled.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/lab-tailscale-reconnect
+
+[Install]
+WantedBy=multi-user.target

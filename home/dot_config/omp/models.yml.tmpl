@@ -1,0 +1,7 @@
+providers:
+  openai-codex:
+    api: openai-codex-responses
+    apiKey: "!op read op://{{ env "LAB_OP_VAULT" | default "lab" }}/{{ env "LAB_OMP_OPENAI_ITEM" | default "codex-subscription" }}/{{ env "LAB_OMP_OPENAI_FIELD" | default "subscription" }}"
+    models:
+      - name: gpt-5.5-codex
+        default: true
