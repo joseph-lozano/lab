@@ -15,9 +15,6 @@ FLAGS=(
   --accept-dns={{ tailscale_accept_dns | ternary('true', 'false') }}
   --ssh={{ tailscale_ssh | ternary('true', 'false') }}
 )
-{% if tailscale_ephemeral %}
-FLAGS+=(--ephemeral)
-{% endif %}
 
 needs_up=1
 if status_json="$(tailscale status --json 2>/dev/null)"; then

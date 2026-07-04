@@ -24,7 +24,6 @@ tailscale_advertise_tags:
 tailscale_hostname: "{{ lab_hostname }}"
 tailscale_accept_dns: true
 tailscale_ssh: true
-tailscale_ephemeral: true
 allow_direct_udp: false
 
 github_pat_item: github-pat
