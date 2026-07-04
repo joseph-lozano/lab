@@ -21,7 +21,7 @@ Ordering constraints enforced by `ansible/site.yml`:
 
 - `fish` is installed by the `base` role before the `user` role sets it as the login shell.
 - The hostname is set before Tailscale joins.
-- Tailscale is confirmed before firewall lockdown and public SSH shutdown.
+- Tailscale is confirmed before firewall lockdown; SSH remains available only on the Tailscale interface.
 - The non-root user token file exists before chezmoi/future templates need it.
 - Chezmoi runs before private work repo clones so the Git credential helper exists.
 - Mise runs before workspace setup that needs `gh`, `omp`, and other tools.
@@ -80,7 +80,7 @@ Commands using service-account auth source the relevant on-disk token file or pa
 
 Create a reusable, pre-authorized, tagged auth key for `tag:lab`, store it in 1Password, and rotate it before expiry. Tailscale auth keys expire between 1 and 90 days; reusable keys still expire. Tagged devices normally have node-key expiry disabled by default, but the auth key is still needed for rebuilds and recovery if the machine must re-register.
 
-Admin-side policy must include both network access permission to the tagged node and a Tailscale SSH rule. A pre-authorized tagged auth key alone does not grant Tailscale SSH access.
+Admin-side policy must allow tailnet network access to the tagged node. The box keeps OpenSSH running, but UFW denies public ingress and allows TCP/22 only on `tailscale0`.
 
 Example shape:
 
@@ -94,22 +94,13 @@ Example shape:
     {
       "src": ["autogroup:member"],
       "dst": ["tag:lab"],
-      "ip": ["*"]
-    }
-  ],
-
-  "ssh": [
-    {
-      "action": "accept",
-      "src": ["autogroup:member"],
-      "dst": ["tag:lab"],
-      "users": ["<configured-username>"]
+      "ip": ["tcp:22"]
     }
   ]
 }
 ```
 
-Root login is intentionally not permitted by the Tailscale SSH ACL. Root-level debugging happens by connecting as the non-root user and using `sudo`. Break-glass is the provider console; a truly wedged box should be rebuilt.
+Root login is intentionally not part of the normal path. Root-level debugging happens by connecting as the non-root user over Tailscale and using `sudo`. Break-glass is the provider console; a truly wedged box should be rebuilt.
 
 Ephemeral nodes are usually removed shortly after going offline, commonly around 30-60 minutes. A re-registered node may get a different Tailscale IP, so outputs and runbooks steer you to the MagicDNS hostname, not a memorized IP.
 
