@@ -3,12 +3,13 @@
   ansible.builtin.shell: |
     set -euo pipefail
     curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.noarmor.gpg \
-      -o /usr/share/keyrings/tailscale-archive-keyring.gpg
+      | gpg --dearmor --yes -o /usr/share/keyrings/tailscale-archive-keyring.gpg
     curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.tailscale-keyring.list \
       -o /etc/apt/sources.list.d/tailscale.list
+    chmod 0644 /usr/share/keyrings/tailscale-archive-keyring.gpg /etc/apt/sources.list.d/tailscale.list
   args:
     executable: /bin/bash
-    creates: /etc/apt/sources.list.d/tailscale.list
+  changed_when: true
 
 - name: Install Tailscale
   ansible.builtin.apt:
