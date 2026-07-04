@@ -7,6 +7,15 @@
     executable: /bin/bash
     creates: /usr/local/bin/chezmoi
 
+- name: Ensure repo source is readable by lab user
+  ansible.builtin.file:
+    path: "{{ lab_workdir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "u=rwX,go=rX"
+    recurse: true
+
 - name: Apply chezmoi source before workspace clones
   ansible.builtin.command:
     cmd: "chezmoi apply --source {{ lab_workdir }}/home --destination /home/{{ lab_user }}"

@@ -43,6 +43,18 @@
   environment:
     MISE_YES: '1'
 
+
+- name: Link OMP command from mise GitHub install
+  ansible.builtin.shell: |
+    set -euo pipefail
+    omp_path="$(find /home/{{ lab_user }}/.local/share/mise/installs/github-can1357-oh-my-pi -type f -name 'omp-linux-*' -perm -111 | sort -V | tail -n 1)"
+    test -n "${omp_path}"
+    install -d -m 0755 /home/{{ lab_user }}/.local/bin
+    ln -sfn "${omp_path}" /home/{{ lab_user }}/.local/bin/{{ omp_binary_name }}
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ lab_user }}"
 - name: Document OS package installation split
   ansible.builtin.debug:
     msg: "OS packages are installed by the base role via apt. TODO: re-enable `mise system install --yes` only after the pinned mise version supports the selected [system.packages] schema without breaking repo-local `mise install`."
@@ -50,12 +62,12 @@
 - name: Validate OMP pinned provider assumptions
   ansible.builtin.shell: |
     set -euo pipefail
-    if ! /home/{{ lab_user }}/.local/bin/mise exec -- omp --version >/tmp/lab-omp-version.txt; then
-      echo "TODO: OMP assertion failed: omp is not installed by selected mise backend." >&2
+    if ! /home/{{ lab_user }}/.local/bin/{{ omp_binary_name }} --version >/tmp/lab-omp-version.txt; then
+      echo "TODO: OMP assertion failed: {{ omp_binary_name }} is not installed by selected mise backend." >&2
       cat /tmp/lab-omp-version.txt >&2 || true
       exit 1
     fi
-    /home/{{ lab_user }}/.local/bin/mise exec -- omp --help >/tmp/lab-omp-help.txt
+    /home/{{ lab_user }}/.local/bin/{{ omp_binary_name }} --help >/tmp/lab-omp-help.txt
     grep -E 'models\.yml|model' /tmp/lab-omp-help.txt >/dev/null || {
       echo "TODO: OMP assertion failed: models.yml/provider help not found in installed OMP output:" >&2
       cat /tmp/lab-omp-help.txt >&2
@@ -63,6 +75,7 @@
     }
   args:
     executable: /bin/bash
+    chdir: "/home/{{ lab_user }}"
   changed_when: false
   when: omp_validation_enabled | bool
   become: true

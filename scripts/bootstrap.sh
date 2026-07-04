@@ -11,6 +11,7 @@ if [ -n "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
   umask 077
   printf 'export OP_SERVICE_ACCOUNT_TOKEN=%s\n' "${OP_SERVICE_ACCOUNT_TOKEN}" > "${LAB_OP_TOKEN_FILE}"
 fi
+umask 022
 if [ ! -s "${LAB_OP_TOKEN_FILE}" ]; then
   echo "missing OP service-account token file: ${LAB_OP_TOKEN_FILE}" >&2
   exit 1
